@@ -47,8 +47,8 @@ if st.session_state.analyze:
     try:
         x = symbols('x', real=True)
         
-        # 함수를 sympy 식으로 변환
-        func_expr = sympify(func_input)
+        # 함수를 sympy 식으로 변환 (심볼 x 명시적으로 전달)
+        func_expr = sympify(func_input, locals={'x': x})
         
         st.success("✅ 함수가 올바르게 입력되었습니다!")
         

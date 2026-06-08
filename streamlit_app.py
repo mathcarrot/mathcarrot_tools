@@ -3,6 +3,7 @@ import streamlit as st
 # 페이지 설정
 st.set_page_config(
     page_title="수학당근 - 함수 학습 도구",
+    page_name="애플리케이션 개요",
     page_icon="🥕",
     layout="wide",
     initial_sidebar_state="expanded"

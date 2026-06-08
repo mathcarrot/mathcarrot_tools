@@ -718,6 +718,7 @@ if st.session_state.analyze:
                             st.write(f"- x → ∞일 때 f(x) → ∞, x → -∞일 때 f(x) → -∞")
                         else:
                             st.write(f"- x → ∞일 때 f(x) → -∞, x → -∞일 때 f(x) → ∞")
+                    st.write("- 3차 함수는 변곡점을 기준으로 점대칭을 가집니다.")
                 
                 else:
                     # n차 함수

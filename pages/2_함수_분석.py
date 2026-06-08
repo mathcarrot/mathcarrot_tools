@@ -28,7 +28,6 @@ if 'func_input' not in st.session_state:
 with col1:
     func_input = st.text_input(
         "함수를 입력하세요",
-        value=st.session_state.func_input,
         key="func_input",
         help="예: x**2 - 2*x + 1, sin(x), exp(x), log(x), 1/(x-2)"
     )

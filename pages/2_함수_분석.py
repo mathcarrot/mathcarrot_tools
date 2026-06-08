@@ -216,12 +216,19 @@ if st.session_state.analyze:
                 y_real = y_vals.real
                 finite_mask = np.isfinite(y_real) & (np.abs(y_real) < 1e6) & (np.abs(y_vals.imag) < 1e-8)
 
-                # 유한/비유한 전환 지점에서 수직 점근선 추정치 추가
-                trans_idx = np.where(np.logical_xor(finite_mask[:-1], finite_mask[1:]))[0]
-                for idx in trans_idx:
-                    x_asym_est = (x_vals[idx] + x_vals[idx+1]) / 2.0
-                    if all(abs(x_asym_est - xa) > 1e-6 for xa in vertical_asymptotes):
-                        vertical_asymptotes.append(float(x_asym_est))
+                # 연속된 비유(무한/NaN) 구간을 찾아 각 구간의 중앙을 수직 점근선으로 추가
+                false_idx = np.where(~finite_mask)[0]
+                if false_idx.size > 0:
+                    # 그룹화: 연속된 인덱스들을 묶음
+                    groups = np.split(false_idx, np.where(np.diff(false_idx) != 1)[0] + 1)
+                    for g in groups:
+                        if g.size == 0:
+                            continue
+                        # 구간 중앙 x 좌표
+                        x_asym_center = float(x_vals[g].mean())
+                        # 중복 방지 (기존 점근선과 가까우면 무시)
+                        if all(abs(x_asym_center - xa) > 1e-6 for xa in vertical_asymptotes):
+                            vertical_asymptotes.append(x_asym_center)
 
                 # 플롯용: 비유한 지점은 NaN으로 채워 그래프가 끊기게 함
                 y_plot_full = np.where(finite_mask, y_real, np.nan)

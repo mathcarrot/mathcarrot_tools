@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import sympy as sp
 from sympy import symbols, sympify, sin, cos, tan, exp, log, diff, solve, limit, oo, simplify, Poly
 import re
-import random
 
 st.set_page_config(page_title="함수 분석 도구", layout="wide")
 st.title("🔍 함수 분석 도구")
@@ -484,85 +483,32 @@ if st.session_state.analyze:
         st.error(f"❌ 분석 중 오류 발생: {str(e)}")
         st.info("다른 함수를 시도해보세요.")
 
-# 예제
+# 분석 예시
 st.markdown("---")
-st.write("### � 분석 예시")
-st.write("아래 버튼을 누르면 기본형에서 평행이동된 예시 함수가 자동으로 입력됩니다.")
+st.write("### 🔎 분석 예시")
+st.write("아래 버튼을 누르면 입력 상자에 예시 함수가 자동으로 채워지고 분석이 실행됩니다.")
 
 
-def make_shifted_example(kind):
-    if kind == "1차 함수":
-        m = random.choice([1, 2, -1, -2, 3, -3])
-        b = random.choice([-4, -2, -1, 1, 2, 4])
-        return f"{m}*x + {b}"
-    if kind == "2차 함수":
-        a = random.choice([1, 2, -1, -2])
-        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        k = random.choice([-4, -2, -1, 0, 1, 2, 4])
-        if h == 0:
-            return f"{a}*x**2 + {k}"
-        return f"{a}*(x - ({h}))**2 + {k}"
-    if kind == "3차 함수":
-        a = random.choice([1, -1, 2, -2])
-        h = random.choice([-2, -1, 0, 1, 2])
-        k = random.choice([-3, -1, 0, 1, 3])
-        if h == 0:
-            return f"{a}*x**3 + {k}"
-        return f"{a}*(x - ({h}))**3 + {k}"
-    if kind == "지수 함수":
-        a = random.choice([2, 3, 0.5])
-        h = random.choice([-2, -1, 0, 1, 2])
-        k = random.choice([-3, -1, 0, 1, 3])
-        return f"({a})**(x - ({h})) + {k}"
-    if kind == "로그 함수":
-        base = random.choice([2, 10])
-        h = random.choice([-2, -1, 0, 1, 2])
-        k = random.choice([-3, -1, 0, 1, 3])
-        if h == 0:
-            return f"log(x, {base}) + {k}"
-        return f"log(x - ({h}), {base}) + {k}"
-    if kind == "sin 함수":
-        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        k = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        return f"sin(x - ({h})) + {k}"
-    if kind == "cos 함수":
-        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        k = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        return f"cos(x - ({h})) + {k}"
-    if kind == "tan 함수":
-        h = random.choice([-2, -1, 0, 1, 2])
-        k = random.choice([-2, -1, 0, 1, 2])
-        return f"tan(x - ({h})) + {k}"
-    if kind == "유리함수":
-        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        k = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        return f"1/(x - ({h})) + {k}"
-    if kind == "절댓값":
-        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        k = random.choice([-3, -2, -1, 0, 1, 2, 3])
-        return f"abs(x - ({h})) + {k}"
-    return "x"
-
-examples = [
-    "1차 함수",
-    "2차 함수",
-    "3차 함수",
-    "지수 함수",
-    "로그 함수",
-    "sin 함수",
-    "cos 함수",
-    "tan 함수",
-    "유리함수",
-    "절댓값",
-]
+# 고정 예시 함수 목록을 단순하게 사용합니다.
+examples = {
+    "1차 함수 예시": "2*x + 3",
+    "2차 함수 예시": "x**2 - 4*x + 3",
+    "3차 함수 예시": "x**3 - 3*x**2 + 2",
+    "지수 함수 예시": "exp(x - 1) + 1",
+    "로그 함수 예시": "log(x - 1) + 2",
+    "sin 함수 예시": "sin(x - 1) + 1",
+    "cos 함수 예시": "cos(x + 2) - 1",
+    "tan 함수 예시": "tan(x - 1)",
+    "유리 함수 예시": "1/(x - 2) + 1",
+    "절댓값 예시": "abs(x + 1) - 2",
+}
 
 cols = st.columns(5)
-for idx, name in enumerate(examples):
+for idx, (name, expr) in enumerate(examples.items()):
     with cols[idx % 5]:
         if st.button(name, key=f"example_{idx}", use_container_width=True):
-            example_expr = make_shifted_example(name)
-            st.session_state.func_input = example_expr
-            st.session_state.example_selected = example_expr
+            st.session_state.func_input = expr
+            st.session_state.example_selected = expr
             st.session_state.analyze = True
             st.experimental_rerun()
 

@@ -891,12 +891,15 @@ examples = {
 }
 
 cols = st.columns(5)
+
+def _select_example(e):
+    st.session_state.example_selected = e
+    st.session_state.func_input = e
+    st.session_state.analyze = True
+
 for idx, (name, expr) in enumerate(examples.items()):
     with cols[idx % 5]:
-        if st.button(name, key=f"example_{idx}", use_container_width=True):
-            st.session_state.example_selected = expr
-            st.session_state.func_input = expr
-            st.session_state.analyze = True
+        st.button(name, key=f"example_{idx}", use_container_width=True, on_click=_select_example, args=(expr,))
 
 if 'example_selected' in st.session_state:
     st.markdown(f"**선택된 분석 예시**: `{st.session_state.example_selected}`")

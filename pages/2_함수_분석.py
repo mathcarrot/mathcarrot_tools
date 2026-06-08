@@ -112,6 +112,53 @@ if st.session_state.analyze:
     try:
         x = symbols('x', real=True)
         
+        # 표현식, 포맷, 그래프 보조 함수
+        def format_expr(expr):
+            try:
+                expr = sp.simplify(expr)
+                s = str(expr)
+                return s.replace('pi', 'π')
+            except Exception:
+                return str(expr)
+
+        def safe_plot_expr(ax, expr, x_vals, color='blue', label=None):
+            y = sp.lambdify(x, expr, 'numpy')(x_vals)
+            y = np.array(y, dtype=np.complex128)
+            y_plot = np.where(np.isfinite(y.real) & (np.abs(y.imag) < 1e-8) & (np.abs(y.real) < 1e6), y.real, np.nan)
+            ax.plot(x_vals, y_plot, color=color, linewidth=2, label=label)
+            ax.axhline(y=0, color='k', linewidth=0.8)
+            ax.axvline(x=0, color='k', linewidth=0.8)
+            ax.grid(True, alpha=0.3)
+            ax.legend(loc='best', fontsize=9)
+
+        def detect_trig_shift(expr):
+            notes = []
+            if not isinstance(expr, sp.Function):
+                return notes
+            arg = expr.args[0]
+            delta = sp.simplify(arg - x)
+            if delta.is_Number and delta != 0:
+                shift_amount = -delta
+                direction = '오른쪽' if shift_amount > 0 else '왼쪽'
+                notes.append(f"x축으로 {direction} {format_val(abs(shift_amount))}만큼 평행이동")
+            vertical = sp.simplify(expr - expr.func(arg))
+            if vertical.is_Number and vertical != 0:
+                direction = '위' if vertical > 0 else '아래'
+                notes.append(f"y축으로 {direction} {format_val(abs(vertical))}만큼 평행이동")
+            if not notes:
+                notes.append('평행이동 없음')
+            return notes
+
+        def detect_symmetry(expr):
+            try:
+                if sp.simplify(expr - expr.subs(x, -x)) == 0:
+                    return '짝함수 (y축 대칭)'
+                if sp.simplify(expr + expr.subs(x, -x)) == 0:
+                    return '기함수 (원점 대칭)'
+            except Exception:
+                pass
+            return '특별한 대칭 없음'
+
         # 함수를 sympy 식으로 변환 (심볼 x 명시적으로 전달)
         func_expr = sympify(func_input, locals={'x': x})
         
@@ -589,7 +636,9 @@ if st.session_state.analyze:
             
             func_str = str(func_expr)
             base_func = None
-            transformation_info = ""
+            base_expr = None
+            transform_notes = []
+            symmetry_note = detect_symmetry(func_expr)
             
             # 1. 다항 함수 분석
             if func_expr.is_polynomial():
@@ -634,7 +683,7 @@ if st.session_state.analyze:
                 
                 elif degree == 3:
                     # 3차 함수
-                    st.write(f"**함수**: f(x) = {func_expr}")
+                    st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                     # 간단한 형태로 표시
                     coeffs = poly.all_coeffs()
                     if len(coeffs) >= 2:
@@ -646,7 +695,7 @@ if st.session_state.analyze:
                 
                 else:
                     # n차 함수
-                    st.write(f"**함수**: f(x) = {func_expr}")
+                    st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                     coeffs = poly.all_coeffs()
                     st.write(f"- 차수: {degree}")
                     st.write(f"- 최고차 계수: {coeffs[0]}")
@@ -655,7 +704,7 @@ if st.session_state.analyze:
             elif 'sin' in func_str:
                 base_func = "y = sin(x)"
                 st.write(f"**원형 함수**: {base_func}")
-                st.write(f"**함수**: f(x) = {func_expr}")
+                st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
                 # 진폭, 주기, 평행이동 분석
                 st.write("- **특징**:")
@@ -666,7 +715,7 @@ if st.session_state.analyze:
             elif 'cos' in func_str:
                 base_func = "y = cos(x)"
                 st.write(f"**원형 함수**: {base_func}")
-                st.write(f"**함수**: f(x) = {func_expr}")
+                st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
                 st.write("- **특징**:")
                 st.write("  - 정의역: 모든 실수")
@@ -676,7 +725,7 @@ if st.session_state.analyze:
             elif 'tan' in func_str:
                 base_func = "y = tan(x)"
                 st.write(f"**원형 함수**: {base_func}")
-                st.write(f"**함수**: f(x) = {func_expr}")
+                st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
                 st.write("- **특징**:")
                 st.write("  - 정의역: x ≠ π/2 + nπ (n은 정수)")
@@ -687,7 +736,7 @@ if st.session_state.analyze:
             elif 'exp' in func_str or func_expr.has(sp.exp):
                 base_func = "y = e^x"
                 st.write(f"**원형 함수**: {base_func}")
-                st.write(f"**함수**: f(x) = {func_expr}")
+                st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
                 st.write("- **특징**:")
                 st.write("  - 정의역: 모든 실수")
@@ -699,7 +748,7 @@ if st.session_state.analyze:
             elif 'log' in func_str or func_expr.has(sp.log):
                 base_func = "y = log(x)"
                 st.write(f"**원형 함수**: {base_func}")
-                st.write(f"**함수**: f(x) = {func_expr}")
+                st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
                 st.write("- **특징**:")
                 st.write("  - 정의역: (0, ∞)")
@@ -710,14 +759,40 @@ if st.session_state.analyze:
             else:
                 if any(trig in func_str for trig in ['sin', 'cos', 'tan', 'exp', 'log']):
                     st.write("**원형 함수**: 없음 (초월함수)")
-                    st.write(f"**함수**: f(x) = {func_expr}")
+                    st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                     st.write("- **설명**: 이 함수는 여러 초월함수가 결합된 형태입니다.")
                     st.write("- 기본 함수들의 조합으로 이루어진 복잡한 함수입니다.")
                 else:
-                    st.write(f"**함수**: f(x) = {func_expr}")
+                    st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                     st.write("- 변환 분석이 불가능합니다.")
-        
-        
+
+            if base_expr is not None:
+                if any(trig in func_str for trig in ['sin', 'cos', 'tan']):
+                    x_vals_transform = np.linspace(-2*np.pi, 2*np.pi, 1200)
+                else:
+                    x_vals_transform = np.linspace(-5, 5, 1200)
+
+                fig, axes = plt.subplots(1, 2, figsize=(12, 4), constrained_layout=True)
+                safe_plot_expr(axes[0], base_expr, x_vals_transform, color='blue', label='원형 함수')
+                safe_plot_expr(axes[1], func_expr, x_vals_transform, color='orange', label='입력 함수')
+                axes[0].set_title('원형 함수')
+                axes[1].set_title('입력 함수')
+                axes[0].set_ylabel('f(x)')
+
+                col1, col2 = st.columns([3, 2])
+                with col1:
+                    st.pyplot(fig)
+                with col2:
+                    st.write('**변환 정보**')
+                    if transform_notes:
+                        for note in transform_notes:
+                            st.write(f"- {note}")
+                    else:
+                        st.write('- 평행이동 없음')
+                    st.write(f"- 대칭 여부: {symmetry_note}")
+                    st.write(f"- 원형 함수: {base_func}")
+                    st.write(f"- 변환된 함수: f(x) = {format_expr(func_expr)}")
+
         # ============= 상세 정보 탭 =============
         with tab4:
             st.subheader("상세 정보")

@@ -235,6 +235,37 @@ if st.session_state.analyze:
                 # NaN이 아닌 실제 플롯 값들 (y축 자동/수동 처리 시 사용)
                 finite_y_values = y_plot_full[~np.isnan(y_plot_full)]
 
+                # 큰 급변(아직 유한값이지만 점근선 근처에서 발생)을 검출하여 플롯을 끊음
+                if finite_y_values.size > 1:
+                    med_diff = float(np.nanmedian(np.abs(np.diff(finite_y_values))))
+                else:
+                    med_diff = 0.0
+                # 기준 임계값: 작은 변동은 무시하고 큰 스파이크는 분리
+                jump_thresh = max(50.0, med_diff * 40.0)
+
+                discontinuity = np.zeros_like(y_plot_full, dtype=bool)
+                for i in range(len(y_plot_full) - 1):
+                    a = y_plot_full[i]
+                    b = y_plot_full[i + 1]
+                    if not np.isnan(a) and not np.isnan(b):
+                        if abs(a - b) > jump_thresh:
+                            discontinuity[i] = True
+                            discontinuity[i + 1] = True
+
+                # 큰 점프 구간을 NaN으로 만들어 선 연결이 되지 않도록 함
+                if np.any(discontinuity):
+                    y_plot_full[discontinuity] = np.nan
+
+                    # 연속된 discontinuity 인덱스 그룹을 찾아 각 구간 중심에 점근선 추가
+                    disc_idx = np.where(discontinuity)[0]
+                    groups = np.split(disc_idx, np.where(np.diff(disc_idx) != 1)[0] + 1)
+                    for g in groups:
+                        if g.size == 0:
+                            continue
+                        x_asym_center = float(x_vals[g].mean())
+                        if all(abs(x_asym_center - xa) > 1e-6 for xa in vertical_asymptotes):
+                            vertical_asymptotes.append(x_asym_center)
+
                 if np.any(finite_mask):
                     fig, ax = plt.subplots(figsize=(10, 6))
                     ax.plot(x_vals, y_plot_full, 'b-', linewidth=2, label=f'f(x) = {func_input}')
@@ -275,6 +306,8 @@ if st.session_state.analyze:
                     ax.legend(by_label.values(), by_label.keys(), loc='best', fontsize=9)
                     
                     # y축 범위 조정
+                    # 플롯에서 큰 점프 부분을 NaN으로 처리했으므로, 여기서 유한값을 재계산
+                    finite_y_values = y_plot_full[~np.isnan(y_plot_full)]
                     if y_auto:
                         # 극값과 변곡점을 포함한 y값 범위 계산
                         all_y_vals = list(finite_y_values)
@@ -285,21 +318,24 @@ if st.session_state.analyze:
                         # 범위 내 변곡점 추가
                         all_y_vals.extend([p[1] for p in inflections if x_min <= p[0] <= x_max])
                         
-                        # y축 범위 계산
+                        # y축 범위 계산: 극단값 영향을 줄이기 위해 2~98 퍼센타일 사용
                         if len(all_y_vals) > 0:
-                            y_min_data = np.min(all_y_vals)
-                            y_max_data = np.max(all_y_vals)
+                            try:
+                                low, high = np.nanpercentile(all_y_vals, [2, 98])
+                                if not np.isfinite(low) or not np.isfinite(high):
+                                    raise ValueError
+                                y_min_data = float(low)
+                                y_max_data = float(high)
+                            except Exception:
+                                y_min_data = float(np.min(all_y_vals))
+                                y_max_data = float(np.max(all_y_vals))
+
                             y_range = y_max_data - y_min_data
-                            
                             if y_range < 0.1:
                                 y_range = 1.0
-                            
-                            # 여유 계산
                             margin = y_range * 0.15
-                            
                             y_min_plot = y_min_data - margin
                             y_max_plot = y_max_data + margin
-                            
                             ax.set_ylim(y_min_plot, y_max_plot)
                     else:
                         if finite_y_values.size > 0:

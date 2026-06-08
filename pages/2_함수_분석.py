@@ -225,6 +225,8 @@ if st.session_state.analyze:
 
                 # 플롯용: 비유한 지점은 NaN으로 채워 그래프가 끊기게 함
                 y_plot_full = np.where(finite_mask, y_real, np.nan)
+                # NaN이 아닌 실제 플롯 값들 (y축 자동/수동 처리 시 사용)
+                finite_y_values = y_plot_full[~np.isnan(y_plot_full)]
 
                 if np.any(finite_mask):
                     fig, ax = plt.subplots(figsize=(10, 6))
@@ -268,7 +270,6 @@ if st.session_state.analyze:
                     # y축 범위 조정
                     if y_auto:
                         # 극값과 변곡점을 포함한 y값 범위 계산
-                        finite_y_values = y_plot_full[~np.isnan(y_plot_full)]
                         all_y_vals = list(finite_y_values)
                         
                         # 범위 내 극값 추가
@@ -302,7 +303,20 @@ if st.session_state.analyze:
                             default_y_max = 10.0
                         y_min = st.number_input("y축 최소값", value=default_y_min)
                         y_max = st.number_input("y축 최대값", value=default_y_max)
-                        ax.set_ylim(y_min, y_max)
+                        # 입력값 검증: 같거나 최소값이 최대값보다 크면 자동 보정
+                        try:
+                            y_min_f = float(y_min)
+                            y_max_f = float(y_max)
+                            if y_min_f >= y_max_f:
+                                # swap if reversed
+                                y_min_f, y_max_f = min(y_min_f, y_max_f), max(y_min_f, y_max_f)
+                                if y_min_f == y_max_f:
+                                    y_min_f -= 1.0
+                                    y_max_f += 1.0
+                            ax.set_ylim(y_min_f, y_max_f)
+                        except Exception:
+                            # fallback to safe defaults
+                            ax.set_ylim(-10.0, 10.0)
                     
                     st.pyplot(fig)
                 else:

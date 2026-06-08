@@ -706,6 +706,8 @@ if st.session_state.analyze:
                         
                         if a_coef < 0:
                             st.write(f"- **대칭이동**: x축에 대해 대칭반사")
+                        # 2차 함수의 축대칭 특성 추가 설명
+                        st.write("- **대칭성**: 2차 함수는 축대칭(직선에 대한 대칭)을 가집니다. 일반적으로 대칭축은 x = h 입니다.")
                 
                 elif degree == 3:
                     # 3차 함수

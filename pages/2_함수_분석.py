@@ -75,11 +75,12 @@ if st.session_state.analyze:
                 # x 데이터 생성
                 x_vals = np.linspace(x_min, x_max, 1000)
                 y_vals = func_lambda(x_vals)
+                y_vals = np.array(y_vals, dtype=np.complex128)
                 
-                # 이상값 처리 (너무 큰 값, NaN 등)
-                valid_mask = np.isfinite(y_vals) & (np.abs(y_vals) < 1000)
-                x_plot = x_vals[valid_mask]
-                y_plot = y_vals[valid_mask]
+                # 실수값만 남기기
+                real_mask = np.isfinite(y_vals.real) & np.isfinite(y_vals.imag) & (np.abs(y_vals.real) < 1000) & (np.abs(y_vals.imag) < 1e-8)
+                x_plot = x_vals[real_mask]
+                y_plot = y_vals.real[real_mask]
                 
                 if len(x_plot) > 0:
                     fig, ax = plt.subplots(figsize=(10, 6))
@@ -102,6 +103,7 @@ if st.session_state.analyze:
                     st.warning("주어진 범위에서 그려진 그래프가 없습니다.")
             except Exception as e:
                 st.error(f"그래프 표시 중 오류: {str(e)}")
+                st.exception(e)
         
         # ============= 함수 분석 탭 =============
         with tab2:

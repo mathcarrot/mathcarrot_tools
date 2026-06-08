@@ -172,9 +172,9 @@ if st.session_state.analyze:
         except Exception:
             pass
         
-        # 탭 생성
-        tab1, tab2, tab3, tab4, tab5 = st.tabs(
-            ["📊 그래프", "🔍 함수 분석", "📈 변환 분석", "🎯 특수점", "📋 상세 정보"]
+        # 탭 생성 (특수점 탭 제거하고 함수 분석에 통합)
+        tab1, tab2, tab3, tab4 = st.tabs(
+            ["📊 그래프", "🔍 함수 분석 결과", "📈 변환 분석", "📋 상세 정보"]
         )
         
         # ============= 그래프 탭 =============
@@ -285,101 +285,168 @@ if st.session_state.analyze:
         
         # ============= 함수 분석 탭 =============
         with tab2:
-            st.subheader("함수 분석")
+            st.subheader("함수 분석 결과")
             
-            # 원형 함수 인식
-            st.write("### 원형 함수 (기본 함수) 인식")
+            # 1. 원형 함수 및 기본 정보
+            st.write("### 📋 함수 정보")
             
             func_str = str(func_expr)
             func_type = "기타 함수"
+            
+            info_data = []
             
             # 함수 유형 판정
             if func_expr.is_polynomial():
                 poly = sp.Poly(func_expr, x)
                 degree = poly.degree()
                 func_type = f"{degree}차 다항 함수"
-                st.write(f"**함수 유형**: {func_type}")
-                st.write(f"**최고차항**: {poly.LC()}·x^{degree}")
+                info_data.append(["함수 유형", func_type])
+                info_data.append(["최고차항", f"{poly.LC()}·x^{degree}"])
                 
             elif 'sin' in func_str or 'cos' in func_str or 'tan' in func_str:
                 func_type = "삼각 함수"
-                st.write(f"**함수 유형**: {func_type}")
+                info_data.append(["함수 유형", func_type])
                 if 'sin' in func_str:
-                    st.write("**기본 함수**: sin(x)")
+                    info_data.append(["기본 함수", "sin(x)"])
                 elif 'cos' in func_str:
-                    st.write("**기본 함수**: cos(x)")
+                    info_data.append(["기본 함수", "cos(x)"])
                 else:
-                    st.write("**기본 함수**: tan(x)")
+                    info_data.append(["기본 함수", "tan(x)"])
                     
             elif 'exp' in func_str or func_expr.has(sp.exp):
                 func_type = "지수 함수"
-                st.write(f"**함수 유형**: {func_type}")
-                st.write("**기본 함수**: e^x")
+                info_data.append(["함수 유형", func_type])
+                info_data.append(["기본 함수", "e^x"])
                 
             elif 'log' in func_str or func_expr.has(sp.log):
                 func_type = "로그 함수"
-                st.write(f"**함수 유형**: {func_type}")
-                st.write("**기본 함수**: ln(x) 또는 log(x)")
+                info_data.append(["함수 유형", func_type])
+                info_data.append(["기본 함수", "ln(x) 또는 log(x)"])
                 
             else:
-                st.write(f"**함수 유형**: {func_type}")
+                info_data.append(["함수 유형", func_type])
             
-            # 함수의 성질
-            st.write("### 함수의 기본 성질")
+            # 대칭성
+            try:
+                func_f_neg = func_expr.subs(x, -x)
+                
+                if simplify(func_expr - func_f_neg) == 0:
+                    info_data.append(["대칭성", "우함수 (짝함수) - y축 대칭"])
+                elif simplify(func_expr + func_f_neg) == 0:
+                    info_data.append(["대칭성", "기함수 (홀함수) - 원점 대칭"])
+                else:
+                    info_data.append(["대칭성", "특별한 대칭성 없음"])
+            except:
+                pass
             
+            st.table(info_data)
+            
+            # 2. 도함수
+            st.write("### 🔢 미분")
+            derivative_data = []
+            
+            if f_prime is not None:
+                derivative_data.append(["1차 도함수", str(f_prime)])
+            else:
+                derivative_data.append(["1차 도함수", "계산 불가"])
+            
+            if f_double_prime is not None:
+                derivative_data.append(["2차 도함수", str(f_double_prime)])
+            else:
+                derivative_data.append(["2차 도함수", "계산 불가"])
+            
+            st.table(derivative_data)
+            
+            # 3. 특수점 정보 (표 형식)
+            st.write("### 📍 특수점")
+            
+            # x절편, y절편
             col1, col2 = st.columns(2)
             
             with col1:
-                # 우함수/기함수 판정
-                func_f = func_expr.subs(x, x)
-                func_f_neg = func_expr.subs(x, -x)
-                
-                if simplify(func_f - func_f_neg) == 0:
-                    st.write("**대칭성**: 우함수 (짝함수) - y축 대칭")
-                elif simplify(func_f + func_f_neg) == 0:
-                    st.write("**대칭성**: 기함수 (홀함수) - 원점 대칭")
-                else:
-                    st.write("**대칭성**: 특별한 대칭성 없음")
+                st.write("**x절편 (근)**")
+                try:
+                    zeros = solve(func_expr, x)
+                    if zeros:
+                        zeros_list = []
+                        for zero in zeros:
+                            try:
+                                zero_val = complex(zero)
+                                if abs(zero_val.imag) < 1e-10:  # 실근만
+                                    zeros_list.append(f"{zero_val.real:.6f}")
+                            except:
+                                try:
+                                    zeros_list.append(f"{float(zero.evalf()):.6f}")
+                                except:
+                                    zeros_list.append(str(zero))
+                        if zeros_list:
+                            st.write(", ".join(zeros_list))
+                        else:
+                            st.write("실수 근 없음")
+                    else:
+                        st.write("실수 근 없음")
+                except Exception:
+                    st.write("계산 불가")
             
             with col2:
-                # 도함수 (1차)
-                if f_prime is not None:
-                    st.write(f"**도함수 f'(x)**: {f_prime}")
-                else:
-                    st.write("**도함수**: 계산 불가")
-                
-                # 2차 도함수
-                if f_double_prime is not None:
-                    st.write(f"**2차 도함수 f''(x)**: {f_double_prime}")
-                else:
-                    st.write("**2차 도함수**: 계산 불가")
+                st.write("**y절편**")
+                try:
+                    y_intercept = func_expr.subs(x, 0)
+                    if hasattr(y_intercept, 'evalf'):
+                        y_val = float(y_intercept.evalf())
+                    else:
+                        y_val = float(y_intercept)
+                    st.write(f"{y_val:.6f}")
+                except:
+                    st.write("계산 불가")
             
-            # 극값 정보 요약
-            st.write("### 극값 정보")
+            # 극값 표
+            st.write("**극값**")
             if extrema:
-                max_points = [e for e in extrema if e[2] == 'max']
-                min_points = [e for e in extrema if e[2] == 'min']
+                extrema_table = []
+                for ex in extrema:
+                    if ex[2] == 'max':
+                        extrema_table.append(["극대점", f"{ex[0]:.6f}", f"{ex[1]:.6f}"])
+                    elif ex[2] == 'min':
+                        extrema_table.append(["극소점", f"{ex[0]:.6f}", f"{ex[1]:.6f}"])
                 
-                if max_points:
-                    st.write(f"**극대점 개수**: {len(max_points)}개")
-                    for pt in max_points:
-                        st.write(f"  - ({pt[0]:.4f}, {pt[1]:.4f})")
-                
-                if min_points:
-                    st.write(f"**극소점 개수**: {len(min_points)}개")
-                    for pt in min_points:
-                        st.write(f"  - ({pt[0]:.4f}, {pt[1]:.4f})")
+                if extrema_table:
+                    st.table(extrema_table)
+                else:
+                    st.write("극값 없음")
             else:
-                st.write("극값이 없습니다.")
+                st.write("극값 없음")
             
-            # 변곡점 정보 요약
-            st.write("### 변곡점 정보")
+            # 변곡점 표
+            st.write("**변곡점**")
             if inflections:
-                st.write(f"**변곡점 개수**: {len(inflections)}개")
+                inflection_table = []
                 for inf in inflections:
-                    st.write(f"  - ({inf[0]:.4f}, {inf[1]:.4f})")
+                    inflection_table.append([f"{inf[0]:.6f}", f"{inf[1]:.6f}"])
+                
+                st.table(inflection_table)
             else:
-                st.write("변곡점이 없습니다.")
+                st.write("변곡점 없음")
+            
+            # 점근선
+            st.write("**점근선**")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("*수평 점근선*")
+                if horizontal_asymptotes:
+                    asymptote_list = [f"y = {h:.6f}" for h in horizontal_asymptotes]
+                    st.write("\n".join(asymptote_list))
+                else:
+                    st.write("없음")
+            
+            with col2:
+                st.write("*수직 점근선*")
+                if vertical_asymptotes:
+                    asymptote_list = [f"x = {v:.6f}" for v in vertical_asymptotes]
+                    st.write("\n".join(asymptote_list))
+                else:
+                    st.write("없음")
         
         # ============= 변환 분석 탭 =============
         with tab3:
@@ -516,98 +583,9 @@ if st.session_state.analyze:
                     st.write(f"**함수**: f(x) = {func_expr}")
                     st.write("- 변환 분석이 불가능합니다.")
         
-        # ============= 특수점 탭 =============
-        with tab4:
-            st.subheader("특수점 분석")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("### x절편 (근/영점)")
-                try:
-                    zeros = solve(func_expr, x)
-                    if zeros:
-                        has_zero = False
-                        for i, zero in enumerate(zeros):
-                            try:
-                                zero_val = complex(zero)
-                                if abs(zero_val.imag) < 1e-10:  # 실근만 표시
-                                    st.write(f"x = {zero_val.real:.6f}")
-                                    has_zero = True
-                            except:
-                                try:
-                                    st.write(f"x = {float(zero.evalf()):.6f}")
-                                    has_zero = True
-                                except:
-                                    st.write(f"x = {zero}")
-                                    has_zero = True
-                        if not has_zero:
-                            st.write("실수 근이 없습니다.")
-                    else:
-                        st.write("실수 근이 없습니다.")
-                except Exception as e:
-                    st.write("근을 계산할 수 없습니다.")
-            
-            with col2:
-                st.write("### y절편")
-                try:
-                    y_intercept = func_expr.subs(x, 0)
-                    if hasattr(y_intercept, 'evalf'):
-                        y_val = float(y_intercept.evalf())
-                    else:
-                        y_val = float(y_intercept)
-                    st.write(f"f(0) = {y_val:.6f}")
-                except:
-                    st.write("y절편을 계산할 수 없습니다.")
-            
-            # 극값 (극대, 극소)
-            st.write("### 극값")
-            if extrema:
-                has_extrema_display = False
-                for ex in extrema:
-                    if ex[2] == 'max':
-                        st.write(f"**극대점**: x = {ex[0]:.6f}, f(x) = {ex[1]:.6f}")
-                        has_extrema_display = True
-                    elif ex[2] == 'min':
-                        st.write(f"**극소점**: x = {ex[0]:.6f}, f(x) = {ex[1]:.6f}")
-                        has_extrema_display = True
-                
-                if not has_extrema_display:
-                    st.write("극값이 없습니다.")
-            else:
-                st.write("극값이 없습니다.")
-            
-            # 변곡점
-            st.write("### 변곡점")
-            if inflections:
-                for inf in inflections:
-                    st.write(f"x = {inf[0]:.6f}, f(x) = {inf[1]:.6f}")
-            else:
-                st.write("변곡점이 없습니다.")
-            
-            # 점근선
-            st.write("### 점근선")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**수평 점근선 (y = ?)**")
-                if horizontal_asymptotes:
-                    for h_asym in horizontal_asymptotes:
-                        st.write(f"y = {h_asym:.6f}")
-                else:
-                    st.write("없음")
-            
-            with col2:
-                st.write("**수직 점근선 (x = ?)**")
-                if vertical_asymptotes:
-                    for v_asym in vertical_asymptotes:
-                        st.write(f"x = {v_asym:.6f}")
-                else:
-                    st.write("없음")
         
         # ============= 상세 정보 탭 =============
-        with tab5:
+        with tab4:
             st.subheader("상세 정보")
             
             st.write("### 입력된 함수")

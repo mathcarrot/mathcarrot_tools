@@ -1,12 +1,25 @@
 import streamlit as st
 import numpy as np
+import os
 import matplotlib.pyplot as plt
+from matplotlib import font_manager as fm
 import sympy as sp
 from sympy import symbols, sympify, sin, cos, tan, exp, log, diff, solve, limit, oo, simplify, Poly
 import re
 
 st.set_page_config(page_title="함수 분석 도구", layout="wide")
 st.title("🔍 함수 분석 도구")
+
+# 한글 폰트 등록: fonts 폴더의 ttf 파일을 등록하고 NanumGothic 사용
+font_dir = os.path.join(os.getcwd(), 'fonts')
+if os.path.isdir(font_dir):
+    for fname in os.listdir(font_dir):
+        if fname.lower().endswith('.ttf'):
+            fm.fontManager.addfont(os.path.join(font_dir, fname))
+    plt.rcParams['font.family'] = 'NanumGothic'
+else:
+    plt.rcParams['font.family'] = 'DejaVu Sans'
+plt.rcParams['axes.unicode_minus'] = False
 
 st.markdown("""
 함수를 입력하면 다음 정보를 분석합니다:

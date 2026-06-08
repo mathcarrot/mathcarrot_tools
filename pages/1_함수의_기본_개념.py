@@ -1,11 +1,20 @@
 import streamlit as st
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 import sympy as sp
 
-# 한글 폰트 설정
-plt.rcParams['font.family'] = 'DejaVu Sans'
+# 한글 폰트 설정: fonts 폴더의 ttf 파일을 등록하고 NanumGothic 사용
+font_dir = os.path.join(os.getcwd(), 'fonts')
+if os.path.isdir(font_dir):
+    for fname in os.listdir(font_dir):
+        if fname.lower().endswith('.ttf'):
+            fm.fontManager.addfont(os.path.join(font_dir, fname))
+    plt.rcParams['font.family'] = 'NanumGothic'
+else:
+    plt.rcParams['font.family'] = 'DejaVu Sans'
+plt.rcParams['axes.unicode_minus'] = False
 
 st.title("📚 함수의 기본 개념")
 st.markdown("---")

@@ -208,32 +208,41 @@ if st.session_state.analyze:
                 func_lambda = sp.lambdify(x, func_expr, 'numpy')
                 
                 # x 데이터 생성
-                x_vals = np.linspace(x_min, x_max, 1000)
+                x_vals = np.linspace(x_min, x_max, 2000)
                 y_vals = func_lambda(x_vals)
                 y_vals = np.array(y_vals, dtype=np.complex128)
-                
-                # 실수값만 남기기
-                real_mask = np.isfinite(y_vals.real) & np.isfinite(y_vals.imag) & (np.abs(y_vals.real) < 1000) & (np.abs(y_vals.imag) < 1e-8)
-                x_plot = x_vals[real_mask]
-                y_plot = y_vals.real[real_mask]
-                
-                if len(x_plot) > 0:
+
+                # 실수부 기준으로 유한한 값 탐지 (극단값은 비유한 것으로 간주)
+                y_real = y_vals.real
+                finite_mask = np.isfinite(y_real) & (np.abs(y_real) < 1e6) & (np.abs(y_vals.imag) < 1e-8)
+
+                # 유한/비유한 전환 지점에서 수직 점근선 추정치 추가
+                trans_idx = np.where(np.logical_xor(finite_mask[:-1], finite_mask[1:]))[0]
+                for idx in trans_idx:
+                    x_asym_est = (x_vals[idx] + x_vals[idx+1]) / 2.0
+                    if all(abs(x_asym_est - xa) > 1e-6 for xa in vertical_asymptotes):
+                        vertical_asymptotes.append(float(x_asym_est))
+
+                # 플롯용: 비유한 지점은 NaN으로 채워 그래프가 끊기게 함
+                y_plot_full = np.where(finite_mask, y_real, np.nan)
+
+                if np.any(finite_mask):
                     fig, ax = plt.subplots(figsize=(10, 6))
-                    ax.plot(x_plot, y_plot, 'b-', linewidth=2, label=f'f(x) = {func_input}')
+                    ax.plot(x_vals, y_plot_full, 'b-', linewidth=2, label=f'f(x) = {func_input}')
                     ax.grid(True, alpha=0.3)
                     ax.axhline(y=0, color='k', linewidth=0.8)
                     ax.axvline(x=0, color='k', linewidth=0.8)
                     ax.set_xlabel('x')
-                    ax.set_ylabel('f(x)')
+                    ax.set_ylabel('f(x)', rotation=90)
                     ax.set_title(f'함수의 그래프: f(x) = {func_input}')
                     
-                    # 점근선 표시
+                    # 점근선 표시 (점선)
                     for y_asym in horizontal_asymptotes:
-                        ax.axhline(y=y_asym, color='gray', linestyle='--', linewidth=1.5, alpha=0.7, label='수평 점근선' if y_asym == horizontal_asymptotes[0] else '')
-                    
+                        ax.axhline(y=y_asym, color='gray', linestyle=':', linewidth=1.5, alpha=0.8, label='수평 점근선' if y_asym == horizontal_asymptotes[0] else '')
+
                     for x_asym in vertical_asymptotes:
                         if x_min <= x_asym <= x_max:
-                            ax.axvline(x=x_asym, color='orange', linestyle='--', linewidth=1.5, alpha=0.7, label='수직 점근선' if x_asym == vertical_asymptotes[0] else '')
+                            ax.axvline(x=x_asym, color='orange', linestyle=':', linewidth=1.5, alpha=0.8, label='수직 점근선' if x_asym == vertical_asymptotes[0] else '')
                     
                     # 극값 표시
                     if extrema:
@@ -259,7 +268,8 @@ if st.session_state.analyze:
                     # y축 범위 조정
                     if y_auto:
                         # 극값과 변곡점을 포함한 y값 범위 계산
-                        all_y_vals = list(y_plot)
+                        finite_y_values = y_plot_full[~np.isnan(y_plot_full)]
+                        all_y_vals = list(finite_y_values)
                         
                         # 범위 내 극값 추가
                         all_y_vals.extend([p[1] for p in extrema if x_min <= p[0] <= x_max])
@@ -284,8 +294,14 @@ if st.session_state.analyze:
                             
                             ax.set_ylim(y_min_plot, y_max_plot)
                     else:
-                        y_min = st.number_input("y축 최소값", value=float(np.min(y_plot)) if len(y_plot) > 0 else -10.0)
-                        y_max = st.number_input("y축 최대값", value=float(np.max(y_plot)) if len(y_plot) > 0 else 10.0)
+                        if finite_y_values.size > 0:
+                            default_y_min = float(np.min(finite_y_values))
+                            default_y_max = float(np.max(finite_y_values))
+                        else:
+                            default_y_min = -10.0
+                            default_y_max = 10.0
+                        y_min = st.number_input("y축 최소값", value=default_y_min)
+                        y_max = st.number_input("y축 최대값", value=default_y_max)
                         ax.set_ylim(y_min, y_max)
                     
                     st.pyplot(fig)

@@ -142,14 +142,28 @@ with tab2:
         axes[1].axhline(y=0, color='k', linewidth=0.5)
         axes[1].axvline(x=0, color='k', linewidth=0.5)
         
-        # tan 함수 (불연속점 제외)
-        x_tan = np.linspace(-np.pi, np.pi, 1000)
+        # tan 함수 (불연속점에서 선이 연결되지 않도록 마스킹하고 점근선 표시)
+        x_tan = np.linspace(-np.pi, np.pi, 2000)
         y_tan = np.tan(x_tan)
-        axes[2].plot(x_tan, np.clip(y_tan, -5, 5), 'g-', linewidth=2)
+        # 큰 값은 NaN으로 바꿔 플롯이 끊기게 함
+        y_tan_masked = np.where(np.abs(y_tan) > 5, np.nan, y_tan)
+        axes[2].plot(x_tan, y_tan_masked, 'g-', linewidth=2)
         axes[2].set_title('tan(x) [범위 제한: -5 to 5]')
         axes[2].grid(True, alpha=0.3)
         axes[2].axhline(y=0, color='k', linewidth=0.5)
         axes[2].axvline(x=0, color='k', linewidth=0.5)
+        # tan의 수직 점근선: x = pi/2 + n*pi
+        asym_x = []
+        k = int(np.floor((x_tan.min() - np.pi/2) / np.pi))
+        while True:
+            x_as = np.pi/2 + k * np.pi
+            if x_as > x_tan.max():
+                break
+            if x_tan.min() <= x_as <= x_tan.max():
+                asym_x.append(x_as)
+            k += 1
+        for xa in asym_x:
+            axes[2].axvline(x=xa, color='orange', linestyle=':', linewidth=1.2, alpha=0.8)
         
         plt.tight_layout()
         st.pyplot(fig)

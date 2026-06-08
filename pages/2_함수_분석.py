@@ -61,12 +61,12 @@ if st.session_state.analyze:
         with tab1:
             st.subheader("함수의 그래프")
             
-            # x의 범위 설정
+            # 정의역 구간 설정
             col1, col2, col3 = st.columns(3)
             with col1:
-                x_min = st.number_input("x의 최소값", value=-5.0)
+                x_min = st.number_input("정의역 구간 설정 - 최소값", value=-5.0)
             with col2:
-                x_max = st.number_input("x의 최대값", value=5.0)
+                x_max = st.number_input("정의역 구간 설정 - 최대값", value=5.0)
             with col3:
                 y_auto = st.checkbox("y축 자동 조정", value=True)
             
@@ -84,6 +84,54 @@ if st.session_state.analyze:
                 x_plot = x_vals[real_mask]
                 y_plot = y_vals.real[real_mask]
                 
+                # 극값, 변곡점, 점근선 계산
+                extrema = []
+                inflections = []
+                horizontal_asymptotes = []
+                vertical_asymptotes = []
+                try:
+                    f_prime = diff(func_expr, x)
+                    f_double_prime = diff(f_prime, x)
+                    critical_points = solve(f_prime, x)
+                    for point in critical_points:
+                        if point.is_real:
+                            point_val = float(point)
+                            if x_min <= point_val <= x_max:
+                                second_val = f_double_prime.subs(x, point)
+                                y_point = func_expr.subs(x, point)
+                                if second_val.is_real:
+                                    if float(second_val) > 0:
+                                        extrema.append((point_val, float(y_point), 'min'))
+                                    elif float(second_val) < 0:
+                                        extrema.append((point_val, float(y_point), 'max'))
+                    inflection_points = solve(f_double_prime, x)
+                    for point in inflection_points:
+                        if point.is_real:
+                            point_val = float(point)
+                            if x_min <= point_val <= x_max:
+                                y_point = func_expr.subs(x, point)
+                                inflections.append((point_val, float(y_point)))
+                except Exception:
+                    pass
+                try:
+                    limit_pos_inf = limit(func_expr, x, oo)
+                    limit_neg_inf = limit(func_expr, x, -oo)
+                    if limit_pos_inf.is_finite:
+                        horizontal_asymptotes.append(float(limit_pos_inf))
+                    if limit_neg_inf.is_finite and float(limit_neg_inf) not in horizontal_asymptotes:
+                        horizontal_asymptotes.append(float(limit_neg_inf))
+                except Exception:
+                    pass
+                try:
+                    if '/' in func_input:
+                        numer, denom = sp.fraction(func_expr)
+                        denom_zeros = solve(denom, x)
+                        for zero in denom_zeros:
+                            if zero.is_real:
+                                vertical_asymptotes.append(float(zero))
+                except Exception:
+                    pass
+                
                 if len(x_plot) > 0:
                     fig, ax = plt.subplots(figsize=(10, 6))
                     ax.plot(x_plot, y_plot, 'b-', linewidth=2, label=f'f(x) = {func_input}')
@@ -93,11 +141,31 @@ if st.session_state.analyze:
                     ax.set_xlabel('x')
                     ax.set_ylabel('f(x)')
                     ax.set_title(f'함수의 그래프: f(x) = {func_input}')
+                    
+                    # 점근선 표시
+                    for y_asym in horizontal_asymptotes:
+                        ax.axhline(y=y_asym, color='gray', linestyle='--', linewidth=1)
+                    for x_asym in vertical_asymptotes:
+                        if x_min <= x_asym <= x_max:
+                            ax.axvline(x=x_asym, color='gray', linestyle='--', linewidth=1)
+                    
+                    # 극값 표시
+                    if extrema:
+                        xs = [p[0] for p in extrema]
+                        ys = [p[1] for p in extrema]
+                        ax.scatter(xs, ys, color='red', s=80, zorder=5, label='극대/극소')
+                    
+                    # 변곡점 표시
+                    if inflections:
+                        xs = [p[0] for p in inflections]
+                        ys = [p[1] for p in inflections]
+                        ax.scatter(xs, ys, color='purple', s=80, zorder=5, label='변곡점')
+                    
                     ax.legend()
                     
                     if not y_auto:
-                        y_min = st.number_input("y의 최소값", value=float(np.min(y_plot)))
-                        y_max = st.number_input("y의 최대값", value=float(np.max(y_plot)))
+                        y_min = st.number_input("y축 최소값", value=float(np.min(y_plot)))
+                        y_max = st.number_input("y축 최대값", value=float(np.max(y_plot)))
                         ax.set_ylim(y_min, y_max)
                     
                     st.pyplot(fig)

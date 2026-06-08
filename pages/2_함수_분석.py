@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import sympy as sp
-from sympy import symbols, sympify, sin, cos, tan, exp, log, diff, solve, limit, oo, simplify
+from sympy import symbols, sympify, sin, cos, tan, exp, log, diff, solve, limit, oo, simplify, Poly
 import re
 
 st.set_page_config(page_title="함수 분석 도구", layout="wide")
@@ -170,28 +170,135 @@ if st.session_state.analyze:
             st.subheader("함수의 변환 분석")
             st.write("### 원형에서의 변환")
             
-            # 간단한 변환 분석
-            if func_expr.is_polynomial() and sp.Poly(func_expr, x).degree() == 2:
-                # 2차 함수인 경우 완전제곱식으로 변환
-                a, b, c = sp.symbols('a b c')
-                poly = sp.Poly(func_expr, x)
-                coeffs = poly.all_coeffs()
+            func_str = str(func_expr)
+            base_func = None
+            transformation_info = ""
+            
+            # 1. 다항 함수 분석
+            if func_expr.is_polynomial():
+                poly = Poly(func_expr, x)
+                degree = poly.degree()
+                base_func = f"y = x^{degree}"
+                st.write(f"**원형 함수**: {base_func}")
                 
-                if len(coeffs) == 3:
-                    a_coef, b_coef, c_coef = coeffs
-                    
-                    # 꼭짓점 형태로 변환
-                    h = -b_coef / (2*a_coef)
-                    k = func_expr.subs(x, h)
-                    
-                    st.write(f"**표준형**: f(x) = {a_coef}(x - {h})² + {k}")
-                    st.write(f"- **평행이동**: x축으로 {h}만큼, y축으로 {k}만큼")
-                    if a_coef < 0:
-                        st.write(f"- **대칭이동**: x축에 대해 대칭 (아래로 볼록)")
-                    else:
-                        st.write(f"- **대칭이동**: 없음 (위로 볼록)")
+                if degree == 1:
+                    # 1차 함수: y = mx + b에서 y = x로의 변환
+                    coeffs = poly.all_coeffs()
+                    if len(coeffs) == 2:
+                        m, b = coeffs
+                        st.write(f"**함수**: f(x) = {m}x + {b}")
+                        st.write(f"- 기울기: {m}")
+                        if b > 0:
+                            st.write(f"- y축으로 {b}만큼 위로 평행이동")
+                        elif b < 0:
+                            st.write(f"- y축으로 {abs(b)}만큼 아래로 평행이동")
+                
+                elif degree == 2:
+                    # 2차 함수: 완전제곱식
+                    coeffs = poly.all_coeffs()
+                    if len(coeffs) == 3:
+                        a_coef, b_coef, c_coef = coeffs
+                        h = -b_coef / (2*a_coef)
+                        k = func_expr.subs(x, h)
+                        
+                        st.write(f"**표준형**: f(x) = {a_coef}(x - ({h}))² + ({k})")
+                        st.write(f"- **평행이동**:")
+                        if h > 0:
+                            st.write(f"  - x축으로 {float(h):.4f}만큼 오른쪽")
+                        elif h < 0:
+                            st.write(f"  - x축으로 {float(abs(h)):.4f}만큼 왼쪽")
+                        if k > 0:
+                            st.write(f"  - y축으로 {float(k):.4f}만큼 위")
+                        elif k < 0:
+                            st.write(f"  - y축으로 {float(abs(k)):.4f}만큼 아래")
+                        
+                        if a_coef < 0:
+                            st.write(f"- **대칭이동**: x축에 대해 대칭반사")
+                
+                elif degree == 3:
+                    # 3차 함수
+                    st.write(f"**함수**: f(x) = {func_expr}")
+                    # 간단한 형태로 표시
+                    coeffs = poly.all_coeffs()
+                    if len(coeffs) >= 2:
+                        st.write(f"- 최고차 계수: {coeffs[0]}")
+                        if coeffs[0] > 0:
+                            st.write(f"- x → ∞일 때 f(x) → ∞, x → -∞일 때 f(x) → -∞")
+                        else:
+                            st.write(f"- x → ∞일 때 f(x) → -∞, x → -∞일 때 f(x) → ∞")
+                
+                else:
+                    # n차 함수
+                    st.write(f"**함수**: f(x) = {func_expr}")
+                    coeffs = poly.all_coeffs()
+                    st.write(f"- 차수: {degree}")
+                    st.write(f"- 최고차 계수: {coeffs[0]}")
+            
+            # 2. 삼각 함수 분석
+            elif 'sin' in func_str:
+                base_func = "y = sin(x)"
+                st.write(f"**원형 함수**: {base_func}")
+                st.write(f"**함수**: f(x) = {func_expr}")
+                
+                # 진폭, 주기, 평행이동 분석
+                st.write("- **특징**:")
+                st.write("  - 정의역: 모든 실수")
+                st.write("  - 치역: [-1, 1]")
+                st.write("  - 주기: 2π")
+            
+            elif 'cos' in func_str:
+                base_func = "y = cos(x)"
+                st.write(f"**원형 함수**: {base_func}")
+                st.write(f"**함수**: f(x) = {func_expr}")
+                
+                st.write("- **특징**:")
+                st.write("  - 정의역: 모든 실수")
+                st.write("  - 치역: [-1, 1]")
+                st.write("  - 주기: 2π")
+            
+            elif 'tan' in func_str:
+                base_func = "y = tan(x)"
+                st.write(f"**원형 함수**: {base_func}")
+                st.write(f"**함수**: f(x) = {func_expr}")
+                
+                st.write("- **특징**:")
+                st.write("  - 정의역: x ≠ π/2 + nπ (n은 정수)")
+                st.write("  - 치역: 모든 실수")
+                st.write("  - 주기: π")
+            
+            # 3. 지수 함수 분석
+            elif 'exp' in func_str or func_expr.has(sp.exp):
+                base_func = "y = e^x"
+                st.write(f"**원형 함수**: {base_func}")
+                st.write(f"**함수**: f(x) = {func_expr}")
+                
+                st.write("- **특징**:")
+                st.write("  - 정의역: 모든 실수")
+                st.write("  - 치역: (0, ∞)")
+                st.write("  - 점근선: y = 0 (x축)")
+                st.write("  - 증가/감소: 계수의 부호에 따라 결정")
+            
+            # 4. 로그 함수 분석
+            elif 'log' in func_str or func_expr.has(sp.log):
+                base_func = "y = log(x)"
+                st.write(f"**원형 함수**: {base_func}")
+                st.write(f"**함수**: f(x) = {func_expr}")
+                
+                st.write("- **특징**:")
+                st.write("  - 정의역: (0, ∞)")
+                st.write("  - 치역: 모든 실수")
+                st.write("  - 점근선: x = 0 (y축)")
+            
+            # 5. 초월 함수 (여러 함수의 조합)
             else:
-                st.info("변환 분석은 2차 다항식에 대해 자세히 표시됩니다.")
+                if any(trig in func_str for trig in ['sin', 'cos', 'tan', 'exp', 'log']):
+                    st.write("**원형 함수**: 없음 (초월함수)")
+                    st.write(f"**함수**: f(x) = {func_expr}")
+                    st.write("- **설명**: 이 함수는 여러 초월함수가 결합된 형태입니다.")
+                    st.write("- 기본 함수들의 조합으로 이루어진 복잡한 함수입니다.")
+                else:
+                    st.write(f"**함수**: f(x) = {func_expr}")
+                    st.write("- 변환 분석이 불가능합니다.")
         
         # ============= 특수점 탭 =============
         with tab4:
@@ -224,6 +331,64 @@ if st.session_state.analyze:
                 except:
                     st.write("y절편을 계산할 수 없습니다.")
             
+            # 극값 (극대, 극소)
+            st.write("### 극값")
+            try:
+                f_prime = diff(func_expr, x)
+                critical_points = solve(f_prime, x)
+                
+                if critical_points:
+                    # 2차 도함수로 극값 판정
+                    f_double_prime = diff(f_prime, x)
+                    
+                    has_extrema = False
+                    for crit_point in critical_points:
+                        try:
+                            crit_val = float(crit_point)
+                            second_deriv_val = float(f_double_prime.subs(x, crit_point))
+                            func_val = float(func_expr.subs(x, crit_point))
+                            
+                            if second_deriv_val > 0:
+                                st.write(f"**극소점**: x = {crit_val:.6f}, f(x) = {func_val:.6f}")
+                                has_extrema = True
+                            elif second_deriv_val < 0:
+                                st.write(f"**극대점**: x = {crit_val:.6f}, f(x) = {func_val:.6f}")
+                                has_extrema = True
+                        except:
+                            pass
+                    
+                    if not has_extrema:
+                        st.write("극값이 없습니다.")
+                else:
+                    st.write("극값이 없습니다.")
+            except:
+                st.write("극값을 계산할 수 없습니다.")
+            
+            # 변곡점
+            st.write("### 변곡점")
+            try:
+                f_prime = diff(func_expr, x)
+                f_double_prime = diff(f_prime, x)
+                inflection_points = solve(f_double_prime, x)
+                
+                if inflection_points:
+                    has_inflection = False
+                    for inf_point in inflection_points:
+                        try:
+                            inf_val = float(inf_point)
+                            func_val = float(func_expr.subs(x, inf_point))
+                            st.write(f"x = {inf_val:.6f}, f(x) = {func_val:.6f}")
+                            has_inflection = True
+                        except:
+                            pass
+                    
+                    if not has_inflection:
+                        st.write("변곡점이 없습니다.")
+                else:
+                    st.write("변곡점이 없습니다.")
+            except:
+                st.write("변곡점을 계산할 수 없습니다.")
+            
             # 점근선
             st.write("### 점근선")
             
@@ -235,10 +400,18 @@ if st.session_state.analyze:
                     limit_pos_inf = limit(func_expr, x, oo)
                     limit_neg_inf = limit(func_expr, x, -oo)
                     
+                    has_horizontal = False
+                    
                     if limit_pos_inf.is_finite:
                         st.write(f"x → +∞: y = {limit_pos_inf}")
+                        has_horizontal = True
+                    
                     if limit_neg_inf.is_finite and limit_neg_inf != limit_pos_inf:
                         st.write(f"x → -∞: y = {limit_neg_inf}")
+                        has_horizontal = True
+                    
+                    if not has_horizontal:
+                        st.write("없음")
                 except:
                     st.write("계산할 수 없습니다.")
             
@@ -247,24 +420,30 @@ if st.session_state.analyze:
                 try:
                     # 분모가 0이 되는 점 찾기 (유리함수의 경우)
                     vertical_asymptotes = []
-                    func_expanded = sp.expand(func_expr)
                     
                     # 간단한 유리함수 분석
-                    if func_expanded.has(1/x) or '/' in func_input:
+                    if '/' in func_input:
                         # 분모 찾기
                         numer, denom = sp.fraction(func_expr)
                         denom_zeros = solve(denom, x)
+                        
+                        has_vertical = False
                         for zero in denom_zeros:
                             try:
                                 zero_val = complex(zero)
                                 if abs(zero_val.imag) < 1e-10:
                                     st.write(f"x = {zero_val.real:.6f}")
+                                    has_vertical = True
                             except:
                                 st.write(f"x = {zero}")
+                                has_vertical = True
+                        
+                        if not has_vertical:
+                            st.write("없음")
                     else:
                         st.write("없음")
                 except:
-                    st.write("계산할 수 없습니다.")
+                    st.write("없음")
         
         # ============= 상세 정보 탭 =============
         with tab5:

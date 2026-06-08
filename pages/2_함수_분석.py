@@ -280,7 +280,30 @@ if st.session_state.analyze:
                         pass
         except Exception:
             pass
-        
+
+        def is_simple_exp(expr):
+            if expr.func is exp:
+                return True
+            if expr.is_Mul:
+                exp_parts = [arg for arg in expr.args if arg.func is exp]
+                return len(exp_parts) == 1 and all(arg.is_Number or arg.func is exp for arg in expr.args)
+            return False
+
+        def is_simple_log(expr):
+            if expr.func is log:
+                return True
+            if expr.is_Mul:
+                log_parts = [arg for arg in expr.args if arg.func is log]
+                return len(log_parts) == 1 and all(arg.is_Number or arg.func is log for arg in expr.args)
+            return False
+
+        def is_transcendental_expr(expr):
+            if expr.has(exp) or expr.has(log) or expr.has(sin) or expr.has(cos) or expr.has(tan):
+                if is_simple_exp(expr) or is_simple_log(expr):
+                    return False
+                return True
+            return False
+
         # 탭 생성 (특수점 탭 제거하고 함수 분석에 통합)
         tab1, tab2, tab3, tab4 = st.tabs(
             ["📊 그래프", "🔍 함수 분석 결과", "📈 변환 분석", "📋 상세 정보"]
@@ -641,29 +664,6 @@ if st.session_state.analyze:
             base_expr = None
             transform_notes = []
             symmetry_note = detect_symmetry(func_expr)
-
-            def is_simple_exp(expr):
-                if expr.func is exp:
-                    return True
-                if expr.is_Mul:
-                    exp_parts = [arg for arg in expr.args if arg.func is exp]
-                    return len(exp_parts) == 1 and all(arg.is_Number or arg.func is exp for arg in expr.args)
-                return False
-
-            def is_simple_log(expr):
-                if expr.func is log:
-                    return True
-                if expr.is_Mul:
-                    log_parts = [arg for arg in expr.args if arg.func is log]
-                    return len(log_parts) == 1 and all(arg.is_Number or arg.func is log for arg in expr.args)
-                return False
-
-            def is_transcendental_expr(expr):
-                if expr.has(exp) or expr.has(log) or expr.has(sin) or expr.has(cos) or expr.has(tan):
-                    if is_simple_exp(expr) or is_simple_log(expr):
-                        return False
-                    return True
-                return False
 
             # 1. 다항 함수 분석
             if func_expr.is_polynomial():

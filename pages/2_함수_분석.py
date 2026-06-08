@@ -645,6 +645,7 @@ if st.session_state.analyze:
                 poly = Poly(func_expr, x)
                 degree = poly.degree()
                 base_func = f"y = x^{degree}"
+                base_expr = x**degree if degree >= 1 else None
                 st.write(f"**원형 함수**: {base_func}")
                 
                 if degree == 1:
@@ -703,6 +704,7 @@ if st.session_state.analyze:
             # 2. 삼각 함수 분석
             elif 'sin' in func_str:
                 base_func = "y = sin(x)"
+                base_expr = sp.sin(x)
                 st.write(f"**원형 함수**: {base_func}")
                 st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
@@ -714,6 +716,7 @@ if st.session_state.analyze:
             
             elif 'cos' in func_str:
                 base_func = "y = cos(x)"
+                base_expr = sp.cos(x)
                 st.write(f"**원형 함수**: {base_func}")
                 st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
@@ -724,6 +727,7 @@ if st.session_state.analyze:
             
             elif 'tan' in func_str:
                 base_func = "y = tan(x)"
+                base_expr = sp.tan(x)
                 st.write(f"**원형 함수**: {base_func}")
                 st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
@@ -735,6 +739,7 @@ if st.session_state.analyze:
             # 3. 지수 함수 분석
             elif 'exp' in func_str or func_expr.has(sp.exp):
                 base_func = "y = e^x"
+                base_expr = sp.exp(x)
                 st.write(f"**원형 함수**: {base_func}")
                 st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 
@@ -747,6 +752,7 @@ if st.session_state.analyze:
             # 4. 로그 함수 분석
             elif 'log' in func_str or func_expr.has(sp.log):
                 base_func = "y = log(x)"
+                base_expr = sp.log(x)
                 st.write(f"**원형 함수**: {base_func}")
                 st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                 

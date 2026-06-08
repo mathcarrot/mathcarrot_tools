@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import sympy as sp
 from sympy import symbols, sympify, sin, cos, tan, exp, log, diff, solve, limit, oo, simplify, Poly
 import re
+import random
 
 st.set_page_config(page_title="함수 분석 도구", layout="wide")
 st.title("🔍 함수 분석 도구")
@@ -22,10 +23,14 @@ st.markdown("---")
 # 함수 입력
 col1, col2 = st.columns([2, 1])
 
+if 'func_input' not in st.session_state:
+    st.session_state.func_input = "x**2 - 2*x + 1"
+
 with col1:
     func_input = st.text_input(
         "함수를 입력하세요",
-        value="x**2 - 2*x + 1",
+        value=st.session_state.func_input,
+        key="func_input",
         help="예: x**2 - 2*x + 1, sin(x), exp(x), log(x), 1/(x-2)"
     )
 
@@ -481,27 +486,85 @@ if st.session_state.analyze:
 
 # 예제
 st.markdown("---")
-st.write("### 📝 사용 예제")
+st.write("### � 분석 예시")
+st.write("아래 버튼을 누르면 기본형에서 평행이동된 예시 함수가 자동으로 입력됩니다.")
 
-examples = {
-    "1차 함수": "2*x + 3",
-    "2차 함수": "x**2 - 4*x + 3",
-    "3차 함수": "x**3 - 2*x",
-    "절댓값": "abs(x)",
-    "유리함수": "1/x",
-    "유리함수 2": "1/(x-2)",
-    "삼각함수": "sin(x)",
-    "지수함수": "exp(x)",
-    "로그함수": "log(x)",
-    "복합함수": "x*exp(-x)",
-}
+
+def make_shifted_example(kind):
+    if kind == "1차 함수":
+        m = random.choice([1, 2, -1, -2, 3, -3])
+        b = random.choice([-4, -2, -1, 1, 2, 4])
+        return f"{m}*x + {b}"
+    if kind == "2차 함수":
+        a = random.choice([1, 2, -1, -2])
+        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        k = random.choice([-4, -2, -1, 0, 1, 2, 4])
+        if h == 0:
+            return f"{a}*x**2 + {k}"
+        return f"{a}*(x - ({h}))**2 + {k}"
+    if kind == "3차 함수":
+        a = random.choice([1, -1, 2, -2])
+        h = random.choice([-2, -1, 0, 1, 2])
+        k = random.choice([-3, -1, 0, 1, 3])
+        if h == 0:
+            return f"{a}*x**3 + {k}"
+        return f"{a}*(x - ({h}))**3 + {k}"
+    if kind == "지수 함수":
+        a = random.choice([2, 3, 0.5])
+        h = random.choice([-2, -1, 0, 1, 2])
+        k = random.choice([-3, -1, 0, 1, 3])
+        return f"({a})**(x - ({h})) + {k}"
+    if kind == "로그 함수":
+        base = random.choice([2, 10])
+        h = random.choice([-2, -1, 0, 1, 2])
+        k = random.choice([-3, -1, 0, 1, 3])
+        if h == 0:
+            return f"log(x, {base}) + {k}"
+        return f"log(x - ({h}), {base}) + {k}"
+    if kind == "sin 함수":
+        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        k = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        return f"sin(x - ({h})) + {k}"
+    if kind == "cos 함수":
+        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        k = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        return f"cos(x - ({h})) + {k}"
+    if kind == "tan 함수":
+        h = random.choice([-2, -1, 0, 1, 2])
+        k = random.choice([-2, -1, 0, 1, 2])
+        return f"tan(x - ({h})) + {k}"
+    if kind == "유리함수":
+        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        k = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        return f"1/(x - ({h})) + {k}"
+    if kind == "절댓값":
+        h = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        k = random.choice([-3, -2, -1, 0, 1, 2, 3])
+        return f"abs(x - ({h})) + {k}"
+    return "x"
+
+examples = [
+    "1차 함수",
+    "2차 함수",
+    "3차 함수",
+    "지수 함수",
+    "로그 함수",
+    "sin 함수",
+    "cos 함수",
+    "tan 함수",
+    "유리함수",
+    "절댓값",
+]
 
 cols = st.columns(5)
-for idx, (name, expr) in enumerate(examples.items()):
+for idx, name in enumerate(examples):
     with cols[idx % 5]:
         if st.button(name, key=f"example_{idx}", use_container_width=True):
-            st.session_state.example_selected = expr
-            st.rerun()
+            example_expr = make_shifted_example(name)
+            st.session_state.func_input = example_expr
+            st.session_state.example_selected = example_expr
+            st.session_state.analyze = True
+            st.experimental_rerun()
 
 if 'example_selected' in st.session_state:
-    st.markdown(f"**선택된 예제**: `{st.session_state.example_selected}`")
+    st.markdown(f"**선택된 분석 예시**: `{st.session_state.example_selected}`")

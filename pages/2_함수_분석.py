@@ -90,9 +90,6 @@ col1, col2 = st.columns([2, 1])
 if 'func_input' not in st.session_state:
     st.session_state.func_input = "x**2 - 2*x + 1"
 
-if 'example_selected' in st.session_state:
-    st.session_state.func_input = st.session_state.example_selected
-
 with col1:
     func_input = st.text_input(
         "함수를 입력하세요",
@@ -792,6 +789,8 @@ if st.session_state.analyze:
                     st.pyplot(fig_orig)
                 with graph_col2:
                     st.pyplot(fig_input)
+                    st.write('**변형된 함수**')
+                    st.write(f"f(x) = {format_expr(func_expr)}")
 
                 info_col1, info_col2 = st.columns([3, 2])
                 with info_col1:
@@ -803,7 +802,6 @@ if st.session_state.analyze:
                         st.write('- 평행이동 없음')
                     st.write(f"- 대칭 여부: {symmetry_note}")
                     st.write(f"- 원형 함수: {base_func}")
-                    st.write(f"- 변환된 함수: f(x) = {format_expr(func_expr)}")
                 with info_col2:
                     st.write('**그래프 설명**')
                     st.write('- 왼쪽은 원형 함수')
@@ -868,6 +866,7 @@ for idx, (name, expr) in enumerate(examples.items()):
     with cols[idx % 5]:
         if st.button(name, key=f"example_{idx}", use_container_width=True):
             st.session_state.example_selected = expr
+            st.session_state.func_input = expr
             st.session_state.analyze = True
 
 if 'example_selected' in st.session_state:

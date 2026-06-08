@@ -7,6 +7,58 @@ import sympy as sp
 from sympy import symbols, sympify, sin, cos, tan, exp, log, diff, solve, limit, oo, simplify, Poly
 import re
 
+# 값 포맷터: 소수 첫째 자리, 유리수는 p/q로, pi는 'π'로 표현
+def format_val(v):
+    try:
+        # 이미 sympy 객체면 사용
+        if isinstance(v, sp.Expr):
+            ns = sp.nsimplify(v, [sp.pi])
+            if ns.is_Rational:
+                p = ns.p
+                q = ns.q
+                if q == 1:
+                    return f"{float(p):.1f}"
+                return f"{p}/{q}"
+            if ns.has(sp.pi):
+                s = str(ns)
+                s = s.replace('pi', 'π')
+                return s
+            try:
+                return f"{float(ns.evalf()):.1f}"
+            except Exception:
+                return str(ns)
+
+        # numpy numbers or Python floats/ints
+        if isinstance(v, (float, int, np.floating, np.integer)):
+            # 시도: pi 또는 유리수로 근사
+            try:
+                ns = sp.nsimplify(v, [sp.pi])
+                if ns.is_Rational:
+                    p = ns.p
+                    q = ns.q
+                    if q == 1:
+                        return f"{float(p):.1f}"
+                    return f"{p}/{q}"
+                if ns.has(sp.pi):
+                    s = str(ns)
+                    s = s.replace('pi', 'π')
+                    return s
+            except Exception:
+                pass
+            return f"{float(v):.1f}"
+
+        # 문자열 또는 기타: sympify 시도
+        try:
+            expr = sp.sympify(v)
+            return format_val(expr)
+        except Exception:
+            return str(v)
+    except Exception:
+        try:
+            return f"{float(v):.1f}"
+        except Exception:
+            return str(v)
+
 st.set_page_config(page_title="함수 분석 도구", layout="wide")
 st.title("🔍 함수 분석 도구")
 
@@ -459,12 +511,12 @@ if st.session_state.analyze:
                             try:
                                 zero_val = complex(zero)
                                 if abs(zero_val.imag) < 1e-10:  # 실근만
-                                    zeros_list.append(f"{zero_val.real:.6f}")
+                                    zeros_list.append(format_val(zero_val.real))
                             except:
                                 try:
-                                    zeros_list.append(f"{float(zero.evalf()):.6f}")
+                                    zeros_list.append(format_val(zero.evalf()))
                                 except:
-                                    zeros_list.append(str(zero))
+                                    zeros_list.append(format_val(zero))
                         if zeros_list:
                             st.write(", ".join(zeros_list))
                         else:
@@ -478,11 +530,7 @@ if st.session_state.analyze:
                 st.write("**y절편**")
                 try:
                     y_intercept = func_expr.subs(x, 0)
-                    if hasattr(y_intercept, 'evalf'):
-                        y_val = float(y_intercept.evalf())
-                    else:
-                        y_val = float(y_intercept)
-                    st.write(f"{y_val:.6f}")
+                    st.write(format_val(y_intercept))
                 except:
                     st.write("계산 불가")
             
@@ -492,9 +540,9 @@ if st.session_state.analyze:
                 extrema_table = []
                 for ex in extrema:
                     if ex[2] == 'max':
-                        extrema_table.append(["극대점", f"{ex[0]:.6f}", f"{ex[1]:.6f}"])
+                        extrema_table.append(["극대점", format_val(ex[0]), format_val(ex[1])])
                     elif ex[2] == 'min':
-                        extrema_table.append(["극소점", f"{ex[0]:.6f}", f"{ex[1]:.6f}"])
+                        extrema_table.append(["극소점", format_val(ex[0]), format_val(ex[1])])
                 
                 if extrema_table:
                     st.table(extrema_table)
@@ -508,7 +556,7 @@ if st.session_state.analyze:
             if inflections:
                 inflection_table = []
                 for inf in inflections:
-                    inflection_table.append([f"{inf[0]:.6f}", f"{inf[1]:.6f}"])
+                    inflection_table.append([format_val(inf[0]), format_val(inf[1])])
                 
                 st.table(inflection_table)
             else:
@@ -521,7 +569,7 @@ if st.session_state.analyze:
             with col1:
                 st.write("*수평 점근선*")
                 if horizontal_asymptotes:
-                    asymptote_list = [f"y = {h:.6f}" for h in horizontal_asymptotes]
+                    asymptote_list = [f"y = {format_val(h)}" for h in horizontal_asymptotes]
                     st.write("\n".join(asymptote_list))
                 else:
                     st.write("없음")
@@ -529,7 +577,7 @@ if st.session_state.analyze:
             with col2:
                 st.write("*수직 점근선*")
                 if vertical_asymptotes:
-                    asymptote_list = [f"x = {v:.6f}" for v in vertical_asymptotes]
+                    asymptote_list = [f"x = {format_val(v)}" for v in vertical_asymptotes]
                     st.write("\n".join(asymptote_list))
                 else:
                     st.write("없음")
@@ -555,12 +603,12 @@ if st.session_state.analyze:
                     coeffs = poly.all_coeffs()
                     if len(coeffs) == 2:
                         m, b = coeffs
-                        st.write(f"**함수**: f(x) = {m}x + {b}")
-                        st.write(f"- 기울기: {m}")
+                        st.write(f"**함수**: f(x) = {format_val(m)}x + {format_val(b)}")
+                        st.write(f"- 기울기: {format_val(m)}")
                         if b > 0:
-                            st.write(f"- y축으로 {b}만큼 위로 평행이동")
+                            st.write(f"- y축으로 {format_val(b)}만큼 위로 평행이동")
                         elif b < 0:
-                            st.write(f"- y축으로 {abs(b)}만큼 아래로 평행이동")
+                            st.write(f"- y축으로 {format_val(abs(b))}만큼 아래로 평행이동")
                 
                 elif degree == 2:
                     # 2차 함수: 완전제곱식
@@ -570,16 +618,16 @@ if st.session_state.analyze:
                         h = -b_coef / (2*a_coef)
                         k = func_expr.subs(x, h)
                         
-                        st.write(f"**표준형**: f(x) = {a_coef}(x - ({h}))² + ({k})")
+                        st.write(f"**표준형**: f(x) = {format_val(a_coef)}(x - ({format_val(h)}))² + ({format_val(k)})")
                         st.write(f"- **평행이동**:")
                         if h > 0:
-                            st.write(f"  - x축으로 {float(h):.4f}만큼 오른쪽")
+                            st.write(f"  - x축으로 {format_val(h)}만큼 오른쪽")
                         elif h < 0:
-                            st.write(f"  - x축으로 {float(abs(h)):.4f}만큼 왼쪽")
+                            st.write(f"  - x축으로 {format_val(abs(h))}만큼 왼쪽")
                         if k > 0:
-                            st.write(f"  - y축으로 {float(k):.4f}만큼 위")
+                            st.write(f"  - y축으로 {format_val(k)}만큼 위")
                         elif k < 0:
-                            st.write(f"  - y축으로 {float(abs(k)):.4f}만큼 아래")
+                            st.write(f"  - y축으로 {format_val(abs(k))}만큼 아래")
                         
                         if a_coef < 0:
                             st.write(f"- **대칭이동**: x축에 대해 대칭반사")

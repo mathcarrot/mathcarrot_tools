@@ -25,6 +25,9 @@ col1, col2 = st.columns([2, 1])
 if 'func_input' not in st.session_state:
     st.session_state.func_input = "x**2 - 2*x + 1"
 
+if 'example_selected' in st.session_state:
+    st.session_state.func_input = st.session_state.example_selected
+
 with col1:
     func_input = st.text_input(
         "함수를 입력하세요",
@@ -508,10 +511,8 @@ cols = st.columns(5)
 for idx, (name, expr) in enumerate(examples.items()):
     with cols[idx % 5]:
         if st.button(name, key=f"example_{idx}", use_container_width=True):
-            st.session_state.func_input = expr
             st.session_state.example_selected = expr
             st.session_state.analyze = True
-            st.experimental_rerun()
 
 if 'example_selected' in st.session_state:
     st.markdown(f"**선택된 분석 예시**: `{st.session_state.example_selected}`")

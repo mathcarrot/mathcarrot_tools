@@ -1,6 +1,42 @@
 import streamlit as st
 
-st.title("🎈 My new app")
-st.write(
-    "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
+# 페이지 설정
+st.set_page_config(
+    page_title="수학당근 - 함수 학습 도구",
+    page_icon="🥕",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# 메인 페이지
+st.title("🥕 수학당근 - 함수 학습 도구")
+st.markdown("""
+## 고등학생을 위한 함수 분석 웹 애플리케이션
+
+이 애플리케이션은 고등학생들이 함수의 기본 개념을 이해하고, 
+입력한 함수를 분석하도록 도와주는 학습 도구입니다.
+
+### 📚 주요 기능
+
+**1️⃣ 함수의 기본 개념**
+- 다항 함수, 삼각 함수, 지수 함수, 로그 함수, 초월 함수의 정의 및 특징
+- 각 함수 유형의 그래프 형태와 성질
+
+**2️⃣ 함수 분석 도구**
+- 입력한 함수의 형태를 자동으로 인식
+- 함수 변환 분석 (평행이동, 대칭이동)
+- 점근선 계산
+- x절편, y절편 계산
+- 함수의 그래프 시각화
+
+### 🎯 사용법
+
+왼쪽 사이드바에서 페이지를 선택하여 시작하세요:
+- **함수의 기본 개념**: 함수의 종류별 특징을 학습합니다
+- **함수 분석**: 직접 함수를 입력하고 분석합니다
+
+---
+""")
+
+st.info("💡 팁: 왼쪽 사이드바 메뉴에서 원하는 페이지를 선택하세요!")
+

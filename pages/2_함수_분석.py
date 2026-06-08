@@ -495,12 +495,17 @@ if st.session_state.analyze:
                 else:
                     info_data.append(["기본 함수", "tan(x)"])
                     
-            elif 'exp' in func_str or func_expr.has(sp.exp):
+            elif is_transcendental_expr(func_expr):
+                func_type = "초월 함수"
+                info_data.append(["함수 유형", func_type])
+                info_data.append(["기본 함수", "초월 함수"])
+
+            elif is_simple_exp(func_expr):
                 func_type = "지수 함수"
                 info_data.append(["함수 유형", func_type])
                 info_data.append(["기본 함수", "e^x"])
                 
-            elif 'log' in func_str or func_expr.has(sp.log):
+            elif is_simple_log(func_expr):
                 func_type = "로그 함수"
                 info_data.append(["함수 유형", func_type])
                 info_data.append(["기본 함수", "ln(x) 또는 log(x)"])
@@ -636,7 +641,30 @@ if st.session_state.analyze:
             base_expr = None
             transform_notes = []
             symmetry_note = detect_symmetry(func_expr)
-            
+
+            def is_simple_exp(expr):
+                if expr.func is exp:
+                    return True
+                if expr.is_Mul:
+                    exp_parts = [arg for arg in expr.args if arg.func is exp]
+                    return len(exp_parts) == 1 and all(arg.is_Number or arg.func is exp for arg in expr.args)
+                return False
+
+            def is_simple_log(expr):
+                if expr.func is log:
+                    return True
+                if expr.is_Mul:
+                    log_parts = [arg for arg in expr.args if arg.func is log]
+                    return len(log_parts) == 1 and all(arg.is_Number or arg.func is log for arg in expr.args)
+                return False
+
+            def is_transcendental_expr(expr):
+                if expr.has(exp) or expr.has(log) or expr.has(sin) or expr.has(cos) or expr.has(tan):
+                    if is_simple_exp(expr) or is_simple_log(expr):
+                        return False
+                    return True
+                return False
+
             # 1. 다항 함수 분석
             if func_expr.is_polynomial():
                 poly = Poly(func_expr, x)
@@ -734,7 +762,7 @@ if st.session_state.analyze:
                 st.write("  - 주기: π")
             
             # 3. 지수 함수 분석
-            elif 'exp' in func_str or func_expr.has(sp.exp):
+            elif is_simple_exp(func_expr):
                 base_func = "y = e^x"
                 base_expr = sp.exp(x)
                 st.write(f"**원형 함수**: {base_func}")
@@ -747,7 +775,7 @@ if st.session_state.analyze:
                 st.write("  - 증가/감소: 계수의 부호에 따라 결정")
             
             # 4. 로그 함수 분석
-            elif 'log' in func_str or func_expr.has(sp.log):
+            elif is_simple_log(func_expr):
                 base_func = "y = log(x)"
                 base_expr = sp.log(x)
                 st.write(f"**원형 함수**: {base_func}")
@@ -760,11 +788,9 @@ if st.session_state.analyze:
             
             # 5. 초월 함수 (여러 함수의 조합)
             else:
-                if any(trig in func_str for trig in ['sin', 'cos', 'tan', 'exp', 'log']):
-                    st.write("**원형 함수**: 없음 (초월함수)")
+                if is_transcendental_expr(func_expr):
+                    st.write("**초월 함수입니다. 변환 분석에서는 자세한 원형 변환을 제공하지 않습니다.**")
                     st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
-                    st.write("- **설명**: 이 함수는 여러 초월함수가 결합된 형태입니다.")
-                    st.write("- 기본 함수들의 조합으로 이루어진 복잡한 함수입니다.")
                 else:
                     st.write(f"**함수**: f(x) = {format_expr(func_expr)}")
                     st.write("- 변환 분석이 불가능합니다.")

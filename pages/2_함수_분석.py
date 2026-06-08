@@ -772,17 +772,23 @@ if st.session_state.analyze:
                 else:
                     x_vals_transform = np.linspace(-5, 5, 1200)
 
-                fig, axes = plt.subplots(1, 2, figsize=(12, 4), constrained_layout=True)
-                safe_plot_expr(axes[0], base_expr, x_vals_transform, color='blue', label='원형 함수')
-                safe_plot_expr(axes[1], func_expr, x_vals_transform, color='orange', label='입력 함수')
-                axes[0].set_title('원형 함수')
-                axes[1].set_title('입력 함수')
-                axes[0].set_ylabel('f(x)')
+                fig_orig, ax_orig = plt.subplots(figsize=(6, 4), constrained_layout=True)
+                safe_plot_expr(ax_orig, base_expr, x_vals_transform, color='blue', label='원형 함수')
+                ax_orig.set_title('원형 함수')
+                ax_orig.set_ylabel('f(x)')
 
-                col1, col2 = st.columns([3, 2])
-                with col1:
-                    st.pyplot(fig)
-                with col2:
+                fig_input, ax_input = plt.subplots(figsize=(6, 4), constrained_layout=True)
+                safe_plot_expr(ax_input, func_expr, x_vals_transform, color='orange', label='입력 함수')
+                ax_input.set_title('입력 함수')
+
+                graph_col1, graph_col2 = st.columns([1, 1])
+                with graph_col1:
+                    st.pyplot(fig_orig)
+                with graph_col2:
+                    st.pyplot(fig_input)
+
+                info_col1, info_col2 = st.columns([3, 2])
+                with info_col1:
                     st.write('**변환 정보**')
                     if transform_notes:
                         for note in transform_notes:
@@ -792,6 +798,10 @@ if st.session_state.analyze:
                     st.write(f"- 대칭 여부: {symmetry_note}")
                     st.write(f"- 원형 함수: {base_func}")
                     st.write(f"- 변환된 함수: f(x) = {format_expr(func_expr)}")
+                with info_col2:
+                    st.write('**그래프 설명**')
+                    st.write('- 왼쪽은 원형 함수')
+                    st.write('- 오른쪽은 입력 함수')
 
         # ============= 상세 정보 탭 =============
         with tab4:
